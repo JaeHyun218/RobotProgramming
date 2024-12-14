@@ -25,10 +25,10 @@ class YOLOv8ObjectDetection(Node):
         self.publisher = self.create_publisher(Twist, '/cmd_vel', 10)
 
         # 주기적 제어를 위한 타이머 설정
-        self.timer = self.create_timer(0.1, self.control_robot)  # 0.1초 간격
+        self.timer = self.create_timer(0.5, self.control_robot)  # 0.1초 간격
 
         self.bridge = CvBridge()  # ROS 이미지 메시지를 OpenCV로 변환
-        self.model = YOLO('yolov8n.pt')  # YOLOv8 모델 로드 (YOLOv8n으로 설정)
+        self.model = YOLO('yolo11n.pt')  # YOLOv8 모델 로드 (YOLOv8n으로 설정)
 
         self.person_detected = False
         self.detection_start_time = None
@@ -38,9 +38,11 @@ class YOLOv8ObjectDetection(Node):
         try:
             # ROS 이미지 메시지를 OpenCV 형식으로 변환
             frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            resized_frame = cv2.resize(frame, (320, 240))  # 원본 해상도를 낮춤
+
 
             # YOLOv8로 객체 감지 수행
-            results = self.model(frame)
+            results = self.model(resized_frame)
 
             # 결과에서 각 객체의 클래스 및 좌표 확인
             detected_classes = results[0].boxes.cls.cpu().numpy()
