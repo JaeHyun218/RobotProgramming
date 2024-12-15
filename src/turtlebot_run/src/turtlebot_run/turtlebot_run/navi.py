@@ -3,6 +3,8 @@ from rclpy.node import Node
 from nav2_msgs.action import NavigateToPose
 from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionClient
+import math  # 쿼터니언 계산에 필요
+
 
 class TurtlebotNav2(Node):
     def __init__(self):
@@ -17,8 +19,10 @@ class TurtlebotNav2(Node):
         self.goal_pose.pose.position.x = -10.0  # 목표 x 좌표
         self.goal_pose.pose.position.y = -2.0  # 목표 y 좌표
         self.goal_pose.pose.position.z = 0.0  # z는 항상 0
-        self.goal_pose.pose.orientation.w = 0.5  # 방향 설정
 
+        # 목표 방향 설정 (왼쪽 방향: yaw = π/2)
+        yaw = math.pi / 2  # 90도 (라디안)
+        self.goal_pose.pose.orientation = self.euler_to_quaternion(0, 0, yaw)
 
         self.get_logger().info('Waiting for NavigateToPose action server...')
         self.nav_to_pose_client.wait_for_server()
@@ -26,6 +30,23 @@ class TurtlebotNav2(Node):
 
         # 목표로 이동 요청
         self.send_goal()
+
+    def euler_to_quaternion(self, roll, pitch, yaw):
+        """
+        Euler 각도를 쿼터니언으로 변환.
+        roll, pitch, yaw는 라디안 단위로 입력.
+        """
+        qx = math.sin(roll / 2) * math.cos(pitch / 2) * math.cos(yaw / 2) - math.cos(roll / 2) * math.sin(pitch / 2) * math.sin(yaw / 2)
+        qy = math.cos(roll / 2) * math.sin(pitch / 2) * math.cos(yaw / 2) + math.sin(roll / 2) * math.cos(pitch / 2) * math.sin(yaw / 2)
+        qz = math.cos(roll / 2) * math.cos(pitch / 2) * math.sin(yaw / 2) - math.sin(roll / 2) * math.sin(pitch / 2) * math.cos(yaw / 2)
+        qw = math.cos(roll / 2) * math.cos(pitch / 2) * math.cos(yaw / 2) + math.sin(roll / 2) * math.sin(pitch / 2) * math.sin(yaw / 2)
+
+        quaternion = PoseStamped().pose.orientation
+        quaternion.x = qx
+        quaternion.y = qy
+        quaternion.z = qz
+        quaternion.w = qw
+        return quaternion
 
     def send_goal(self):
         self.get_logger().info('Sending goal to NavigateToPose action server...')
@@ -72,6 +93,7 @@ def main(args=None):
 
     node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
